@@ -1,0 +1,80 @@
+# Query the Delta table to retrieve the latest news data
+df = spark.sql("SELECT * FROM bing_lake_db.tbl_latest_news")
+display(df)
+
+# Import necessary libraries for sentiment analysis
+import synapse.ml.core
+from synapse.ml.services import AnalyzeText
+
+# Set up the AnalyzeText model for sentiment analysis
+model = (AnalyzeText()
+        .setTextCol("description")  # Column containing text for sentiment analysis
+        .setKind("SentimentAnalysis")  # Type of analysis to perform
+        .setOutputCol("response")  # Column to store the analysis results
+        .setErrorCol("error"))  # Column to capture any errors during analysis
+
+# Apply the sentiment analysis model to the DataFrame
+result = model.transform(df)
+display(result)
+
+# Import functions for DataFrame operations
+from pyspark.sql.functions import col
+
+# Extract the sentiment from the analysis results
+sentiment_df = result.withColumn("sentimental", col("response.documents.sentiment"))
+display(sentiment_df)
+
+# Remove unnecessary columns from the DataFrame
+sentiment_df_final = sentiment_df.drop("error", "response")
+display(sentiment_df_final)
+
+# Import exception handling for managing table creation
+from pyspark.sql.utils import AnalysisException
+
+# Define the Delta table name
+table_name = 'bing_lake_db.tbl_sentimental_analysis'
+
+try:
+    # Attempt to save the cleaned DataFrame as a Delta table
+    sentiment_df_final.write.format("delta").saveAsTable(table_name)
+
+except AnalysisException:
+    # Handle the case where the table already exists
+    print("Table Already Exists")
+
+    # Create or replace a temporary view for the DataFrame
+    sentiment_df_final.createOrReplaceTempView("vw_sentiment_df_final")
+
+    # Perform a merge operation to update or insert data into the existing table
+    spark.sql(f"""
+        MERGE INTO {table_name} AS target_table
+        USING vw_sentiment_df_final AS source_view
+        ON source_view.url = target_table.url
+        WHEN MATCHED AND (
+            source_view.title <> target_table.title OR
+            source_view.description <> target_table.description OR
+            source_view.category <> target_table.category OR
+            source_view.image <> target_table.image OR
+            source_view.datePublished <> target_table.datePublished
+        )
+        THEN UPDATE SET *
+        WHEN NOT MATCHED
+        THEN INSERT *
+    """)
+
+# DAX Formula to calculate the percentage of positive sentiment
+# This should be placed in a DAX expression within Power BI
+Positive Sentiment % = 
+IF(
+    COUNTROWS(
+        FILTER('tbl_sentimental_analysis', 'tbl_sentimental_analysis'[sentimental] = "positive" )) > 0,
+    DIVIDE(
+        CALCULATE(COUNTROWS(FILTER('tbl_sentimental_analysis', 'tbl_sentimental_analysis'[sentimental] = "positive" ))),
+        COUNTROWS('tbl_sentimental_analysis')
+    ),
+    0
+)
+
+# API query parameters (example placeholder)
+@pipeline().parameters.search_term
+?q=latest+news&count=100&freshness&mkt=en-IN
