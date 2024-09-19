@@ -1,0 +1,68 @@
+-- Positive Sentiment Percentage Calculation
+PositiveSentimentPercent = 
+IF(
+    COUNTROWS(
+        FILTER(
+            'tbl_sentimental_analysis', 
+            'tbl_sentimental_analysis'[sentimental] = "positive"
+        )
+    ) > 0,
+    DIVIDE(
+        CALCULATE(
+            COUNTROWS(
+                FILTER(
+                    'tbl_sentimental_analysis', 
+                    'tbl_sentimental_analysis'[sentimental] = "positive"
+                )
+            )
+        ),
+        COUNTROWS('tbl_sentimental_analysis')
+    ),
+    0
+)
+
+-- Negative Sentiment Percentage Calculation
+NegativeSentimentPercent = 
+IF(
+    COUNTROWS(
+        FILTER(
+            'tbl_sentimental_analysis', 
+            'tbl_sentimental_analysis'[sentimental] = "negative"
+        )
+    ) > 0,
+    DIVIDE(
+        CALCULATE(
+            COUNTROWS(
+                FILTER(
+                    'tbl_sentimental_analysis', 
+                    'tbl_sentimental_analysis'[sentimental] = "negative"
+                )
+            )
+        ),
+        COUNTROWS('tbl_sentimental_analysis')
+    ),
+    0
+)
+
+-- Neutral Sentiment Percentage Calculation
+NeutralSentimentPercent = 
+IF(
+    COUNTROWS(
+        FILTER(
+            'tbl_sentimental_analysis', 
+            'tbl_sentimental_analysis'[sentimental] = "neutral"
+        )
+    ) > 0,
+    DIVIDE(
+        CALCULATE(
+            COUNTROWS(
+                FILTER(
+                    'tbl_sentimental_analysis', 
+                    'tbl_sentimental_analysis'[sentimental] = "neutral"
+                )
+            )
+        ),
+        COUNTROWS('tbl_sentimental_analysis')
+    ),
+    0
+)
